@@ -1,9 +1,10 @@
 {
-    "files.associations": {
-        "iosfwd": "cpp",
-        "xiosbase": "cpp",
-        "bitset": "cpp",
-        "iostream": "cpp",
-        "xstring": "cpp"
-    }
+	"files.associations": {
+		"iosfwd": "cpp",
+		"xiosbase": "cpp",
+		"bitset": "cpp",
+		"iostream": "cpp",
+		"xstring": "cpp",
+		"ostream": "cpp"
+	}
 }
