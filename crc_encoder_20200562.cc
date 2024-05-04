@@ -82,9 +82,9 @@ int main(int argc, char *argv[]) {
 	// codeword가 8로 나누어 떨어지게끔 codeword 앞에 1byte짜리 패딩 정보와 패딩 비트를 추가함
 	int padding_num;
 	padding_num = !(codeword.length() % 8) ? 0 : 8 - (codeword.length() % 8); // codeword가 8로 나누어떨어지면 패딩을 추가하지 않음
-	bitset<8> binary(padding_num);
+	bitset<8> bit_padding_num(padding_num);
 	string zeros(padding_num, '0');
-	codeword = binary.to_string() + zeros + codeword;
+	codeword = bit_padding_num.to_string() + zeros + codeword;
 
 	//2진수 string codeword를 8글자당 1byte로 압축
 	string encoded;

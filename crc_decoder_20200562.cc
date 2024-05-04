@@ -83,24 +83,25 @@ int main(int argc, char *argv[]) {
 	codeword = codeword.substr(padding_info, codeword.length() - padding_info);
 
 	// codeword size로 나눠서 각각의 codeword 검증 후 dataword 추출하여 resword에 저장
-	int dsize = atoi(argv[5]);
+	int dsize = atoi(argv[5]); // dataword length
 	string generator = argv[4];
-	int csize = dsize + generator.length() - 1;
-	int codeword_num = 0, wrong_codeword_num = 0;
+	int csize = dsize + generator.length() - 1; // codeword length
+	int codeword_num = 0, wrong_codeword_num = 0; // result파일 작성을 위한 변수
 	string dataword;
+	string zeros(generator.length() - 1, '0'); // codeword를 generator로 나눈 나머지와 비교하기 위한 zeros
 	for(int i = 0; i < codeword.length(); i += csize) {
-		string eachCodeword = codeword.substr(i, i + csize);
-		string zeros(generator.length() - 1, '0');
-		if (mod2(eachCodeword, generator) != zeros) // 오류가 난 codeword 개수 기록
+		string eachCodeword = codeword.substr(i, csize);
+		if (strcmp(mod2(eachCodeword, generator).c_str(), zeros.c_str())) {// 오류가 난 codeword 개수 기록
 			wrong_codeword_num++;
-		dataword += eachCodeword.substr(0, dsize); // codeword를 dataword로 변환
+		}
+		dataword += eachCodeword.substr(0, dsize); // codeword를 dataword로 변환하여 기존 dataword와 이어붙임
 		codeword_num++;
 	}
 
 	// dataword를 본래의 파일로 복원
 	string decoded;
 	for(int i = 0; i < dataword.length(); i += 8) {
-		string eachDataword = dataword.substr(i, i + 8);
+		string eachDataword = dataword.substr(i, 8);
 		bitset<8> bit_dataword(eachDataword);
 		decoded += static_cast<char>(bit_dataword.to_ulong());
 	}
