@@ -26,7 +26,7 @@ string mod2(string& dividend, string& divisor) {
         // remainder에서 앞부분 자르기
     	string current = remainder.substr(0, divisor.length());
 
-        // 1 X X X일 경우에만 나눗셈 진행
+        // 1 X X X 일 경우에만 나눗셈 진행
         if (current[0] == '1') {
             current = xor_string(current, divisor);
         }
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 		cout << "output file open error." << endl;
 		return (1);
 	}
-	if (!strcmp(argv[4], "4") && !strcmp(argv[4], "8")) {
+	if (strcmp(argv[4], "4") && strcmp(argv[4], "8")) {
 		cout << "dataword size must be 4 or 8." << endl;
 		return (1);
 	}
@@ -96,5 +96,5 @@ int main(int argc, char *argv[]) {
 	}
 
 	// write
-	output_file.write(encoded.c_str(), encoded.length());
+	output_file << encoded;
 }

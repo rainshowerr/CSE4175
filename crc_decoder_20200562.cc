@@ -1,8 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include <cstring>
-#include <bitset>
 #include <string>
+#include <cstring>
+#include <cstdlib>
+#include <sstream>
+#include <bitset>
 
 using namespace std;
 
@@ -60,7 +62,7 @@ int main(int argc, char *argv[]) {
 		cout << "result file open error." << endl;
 		return (1);
 	}
-	if (!strcmp(argv[5], "4") && !strcmp(argv[5], "8")) {
+	if (strcmp(argv[5], "4") && strcmp(argv[5], "8")) {
 		cout << "dataword size must be 4 or 8." << endl;
 		return (1);
 	}
@@ -105,8 +107,7 @@ int main(int argc, char *argv[]) {
 		bitset<8> bit_dataword(eachDataword);
 		decoded += static_cast<char>(bit_dataword.to_ulong());
 	}
-	output_file.write(decoded.c_str(), decoded.length());
-	result_file.write(to_string(codeword_num).c_str(), to_string(codeword_num).length());
-	result_file.write(" ", 1);
-	result_file.write(to_string(wrong_codeword_num).c_str(), to_string(wrong_codeword_num).length());
+
+	output_file << decoded;
+	result_file << codeword_num << ' ' << wrong_codeword_num;
 }
