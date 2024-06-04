@@ -134,12 +134,34 @@ void initialize_rtable(int node) {
 	}
 }
 
-int detect_path(int i, int j, int start, int end) {
-	for(int k = 0; k + 1 < n; k++) {
-		if (route[i][j].first[k] == start && route[i][j].first[k + 1] == end)
-			return (1);
+// 라우터의 라우팅 테이블에 start -> end 경로가 있으면 해당 경로가 들어있는 루트의 cost를 무한으로 설정하고 1 반환, 없으면 0 반환
+int detect_path_and_delete(int node, int start, int end) {
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j + 1 < (int)route[node][i].first.size(); j++) {
+			if ((route[node][i].first[j] == start && route[node][i].first[j + 1] == end)
+			|| (route[node][i].first[j] == end && route[node][i].first[j + 1] == start)) {
+				vector<int> v;
+				route[node][i].first.clear();
+				route[node][i].first = v;
+				route[node][i].second = 10000;
+				return (1);
+			}
+		}
 	}
 	return (0);
+}
+
+
+// 라우팅테이블 업데이트가 감지되면 이웃 라우터들에게 업데이트 소식을 알리고 필요하다면 라우팅테이블을 수정하는 함수
+void signal_change(int node, int start, int end) {
+	// 현재 노드 검사
+	if (detect_path_and_delete(node, start, end)) {
+		for(int i = 0; i < n; i++) { // 주위 노드도 검사하기 위해 재귀호출
+			if(link[node][i]) {
+				signal_change(i, start, end);
+			}
+		}
+	}
 }
 
 void change_route(ifstream& topologyfile, ifstream& changesfile, ifstream& messagesfile, ofstream& outputfile) {
@@ -148,38 +170,34 @@ void change_route(ifstream& topologyfile, ifstream& changesfile, ifstream& messa
 		istringstream iss(change);
 		iss >> start >> end >> cost;
 
+		/* cost가 기존보다 커지거나 링크가 끊어지는 경우(cost가 무한대가 되는 경우)
+		최단경로 알고리즘을 적용해도 업데이트되지 않으므로
+		기존 경로를 거치는 루트의 cost를 무한대로 만들어줘야 함
+		*/
+
+		// cost가 기존보다 작아지는 경우
+		if (cost != -999 && cost <= link[start][end]) {
+			link[start][end] = cost;
+			link[end][start] = cost;
+			// 별도 라우팅테이블 업데이트 불필요
+		}
+		// cost가 기존보다 커지는 경우
+		else if (cost != - 999 && cost > link[start][end]) {
+			link[start][end] = cost;
+			link[end][start] = cost;
+			signal_change(start, start, end);
+			signal_change(end, start, end);
+		}
 		// 링크가 끊어지는 경우
-		if (cost == -999) {
+		else {
+			signal_change(start, start, end);
+			// 링크가 끊어지는 경우 해당 경로를 거치는 라우터의 루트를 전부 업데이트해준 뒤 링크를 끊어야 함
 			link[start][end] = 0;
 			link[end][start] = 0;
 		}
-		// 링크가 새로 생기거나 cost가 수정되는 경우
-		else {
-			link[start][end] = cost;
-			link[end][start] = cost;
-		}
 
-		bellman_ford(start);
-		bellman_ford(end);
-
-		// 변경된 간선을 지나는 경우 관련 노드의 라우팅 테이블 업데이트
-		for(int i = 0; i < n; i++) {
-			for(int j = 0; j < n; j++) {
-				if (route[i][j].second && (detect_path(i, j, start, end) || detect_path(i, j, end, start))) {
-					vector<int> v;
-					if (i == j) {
-						v.push_back(i);
-						route[i][j].first.clear();
-						route[i][j].first = v;
-					}
-					route[i][j].first.clear();
-					route[i][j].first = v;
-					route[i][j].second = 10000;
-				}
-			}
-		}
-
-		// 전체 라우팅 테이블 업데이트
+		/* 기존 경로를 거치는 루트의 cost를 무한대로 만들어준 후
+		본격적으로 최단경로 알고리즘을 적용해서 라우팅 테이블 수정 */
 		for(int i = 0; i < n; i++)
 			bellman_ford(i);
 

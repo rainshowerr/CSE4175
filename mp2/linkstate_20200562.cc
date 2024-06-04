@@ -137,6 +137,7 @@ void change_route(ifstream& topologyfile, ifstream& changesfile, ifstream& messa
 		istringstream iss(change);
 		iss >> start >> end >> cost;
 
+		// 업데이트가 있었다면 전부 초기화
 		initialize_route_table();
 
 		// 링크가 끊어지는 경우
