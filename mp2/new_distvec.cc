@@ -55,7 +55,7 @@ void bellman_ford(int start) {
 		// 매 반복마다 모든 간선 확인
 		for(int pass = 0; pass < n; pass++) {
 			for(int dest = 0; dest < n; dest++) {
-				if (link[pass][dest] && route[start][pass].first != 10000 && (route[start][dest].first > route[start][pass].first + link[pass][dest])) {
+				if (link[pass][dest] && route[start][pass].first != 10000 && (route[start][dest].first >= route[start][pass].first + link[pass][dest])) {
 					route[start][dest].first = route[start][pass].first + link[pass][dest];
 				}
 			}
