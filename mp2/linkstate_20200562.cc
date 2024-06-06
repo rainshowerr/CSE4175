@@ -4,7 +4,9 @@
 #include <sstream>
 #include <algorithm>
 #include <string.h>
+#define INF 987654321
 using namespace std;
+
 
 int n;
 pair<vector<int>, int> route[100][100];
@@ -25,7 +27,7 @@ priority_queue<pair<int, int>, vector<pair<int, int> >, Compare> pq[100];
 void print(ofstream& outputfile) {
 	for(int i = 0; i < n; i++) {
 		for(int j = 0; j < n; j++) {
-			if (route[i][j].second != 10000) {
+			if (route[i][j].second != INF) {
 				outputfile << j << ' ';
 				if (i == j)
 					outputfile << route[i][j].first.front() << ' ';
@@ -64,7 +66,7 @@ void initialize_route_table() {
 			}
 			else {
 				route[i][j].first = v;
-				route[i][j].second = 10000;
+				route[i][j].second = INF;
 			}
 		}
 	}
@@ -82,20 +84,18 @@ void dijkstra(int start) {
 				int n_curr = i; // 도착 노드
 				int n_cost = link[curr][i]; // 도착 노드까지 한번에 가는 cost
 				// tie-breaking rule 3 : cost가 같은 경우 parent 번호가 더 작은 경로를 선택
-				if ((route[start][n_curr].second == cost + n_cost) && (start > curr)) {
+				if ((route[start][n_curr].second == cost + n_cost) && (start <= curr))
+					continue;
+				if (route[start][n_curr].second >= cost + n_cost) {
 					// hops 업데이트
 					route[start][n_curr].first.clear(); // hops 초기화
 					route[start][n_curr].first.insert(route[start][n_curr].first.end(), route[start][curr].first.begin(), route[start][curr].first.end()); // 거쳐가는 노드까지의 hops 복사
 					route[start][n_curr].first.push_back(n_curr); // 거쳐가는 노드에서부터의 hop 추가
-				}
-				else if (route[start][n_curr].second > cost + n_cost) {
-					// hops 업데이트
-					route[start][n_curr].first.clear(); // hops 초기화
-					route[start][n_curr].first.insert(route[start][n_curr].first.end(), route[start][curr].first.begin(), route[start][curr].first.end()); // 거쳐가는 노드까지의 hops 복사
-					route[start][n_curr].first.push_back(n_curr); // 거쳐가는 노드에서부터의 hop 추가
-					// cost 업데이트
-					route[start][n_curr].second = cost + n_cost;
-					pq[start].push(make_pair(cost + n_cost, n_curr));
+					if (route[start][n_curr].second > cost + n_cost) {
+						// cost 업데이트
+						route[start][n_curr].second = cost + n_cost;
+						pq[start].push(make_pair(cost + n_cost, n_curr));
+					}
 				}
 			}
 		}
@@ -115,7 +115,7 @@ void simulate(ifstream& messagesfile, ofstream& outputfile) {
 		// 출력
 		outputfile << "from " << sender << " to " << receiver << " cost ";
 		// 경로가 없는 경우
-		if (route[sender][receiver].second >= 10000)
+		if (route[sender][receiver].second >= INF)
 			outputfile << "infinite hops unreachable message " << message << endl;
 
 		// 경로가 있는 경우
@@ -137,7 +137,6 @@ void change_route(ifstream& topologyfile, ifstream& changesfile, ifstream& messa
 		istringstream iss(change);
 		iss >> start >> end >> cost;
 
-		// 업데이트가 있었다면 전부 초기화
 		initialize_route_table();
 
 		// 링크가 끊어지는 경우
@@ -174,14 +173,14 @@ int main(int ac, char* av[]) {
 	initialize_link_table(topologyfile);
 	initialize_route_table();
 
-	// 라우팅테이블 초기화
+	ofstream outputfile("output_ls.txt");
+
+	// 초기 라우팅테이블 출력 및 simulate
 	for(int i = 0; i < n; i++)
 		dijkstra(i);
-
-	ofstream outputfile("output_ls.txt");
-	// 초기 라우팅테이블 출력 및 simulate
 	print(outputfile);
 	simulate(messagesfile, outputfile);
+
 	// change 이후 라우팅테이블 출력 및 simulate
 	change_route(topologyfile, changesfile, messagesfile, outputfile);
 

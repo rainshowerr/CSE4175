@@ -3,7 +3,9 @@
 #include <sstream>
 #include <vector>
 #include <string.h>
+#define INF 987654321
 using namespace std;
+
 
 int n; // 전체 라우터의 개수
 pair<vector<int>, int> route[100][100]; // 라우팅 테이블 <hops, cost>
@@ -12,7 +14,7 @@ int link[100][100]; // i와 j 테이블이 연결되어 있으면 cost, 아니�
 void print(ofstream& outputfile) {
 	for(int i = 0; i < n; i++) {
 		for(int j = 0; j < n; j++) {
-			if (route[i][j].second != 10000) {
+			if (route[i][j].second != INF) {
 				outputfile << j << ' ';
 				if (i == j)
 					outputfile << route[i][j].first.front() << ' ';
@@ -52,7 +54,7 @@ void initialize_route_table() {
 			}
 			else {
 				route[i][j].first = v;
-				route[i][j].second = 10000;
+				route[i][j].second = INF;
 			}
 		}
 	}
@@ -66,13 +68,13 @@ void bellman_ford(int start) {
 				if (link[i][j]) {
 					int curr = i, next = j, cost = link[i][j];
 					// tie-breaking rule 1
-					if ((route[start][curr].second != 10000 && route[start][next].second == route[start][curr].second + cost) && curr < next) {
+					if ((route[start][curr].second != INF && route[start][next].second == route[start][curr].second + cost) && curr < next) {
 						// hops 업데이트
 						route[start][next].first.clear();
 						route[start][next].first.insert(route[start][next].first.begin(), route[start][curr].first.begin(), route[start][curr].first.end());
 						route[start][next].first.push_back(next);
 					}
-					else if(route[start][curr].second != 10000 && route[start][next].second > route[start][curr].second + cost){
+					else if(route[start][curr].second != INF && route[start][next].second > route[start][curr].second + cost){
 						// hops 업데이트
 						route[start][next].first.clear();
 						route[start][next].first.insert(route[start][next].first.begin(), route[start][curr].first.begin(), route[start][curr].first.end());
@@ -99,7 +101,7 @@ void simulate(ifstream& messagesfile, ofstream& outputfile) {
 		// 출력
 		outputfile << "from " << sender << " to " << receiver << " cost ";
 		// 경로가 없는 경우
-		if (route[sender][receiver].second >= 10000)
+		if (route[sender][receiver].second >= INF)
 			outputfile << "infinite hops unreachable message " << message << endl;
 
 		// 경로가 있는 경우
@@ -127,9 +129,9 @@ void initialize_rtable(int node) {
 		}
 		else {
 			route[node][i].first = v;
-			route[node][i].second = 10000;
+			route[node][i].second = INF;
 			route[i][node].first = v;
-			route[i][node].second = 10000;
+			route[i][node].second = INF;
 		}
 	}
 }
@@ -143,7 +145,7 @@ int detect_path_and_delete(int node, int start, int end) {
 				vector<int> v;
 				route[node][i].first.clear();
 				route[node][i].first = v;
-				route[node][i].second = 10000;
+				route[node][i].second = INF;
 				return (1);
 			}
 		}
