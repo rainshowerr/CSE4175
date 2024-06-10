@@ -6,21 +6,18 @@
 #define INF 987654321
 using namespace std;
 
-
 int n; // 전체 라우터의 개수
-pair<vector<int>, int> route[100][100]; // 라우팅 테이블 <hops, cost>
+pair<int, int> route[100][100]; // 라우팅 테이블 <cost, next>
 int link[100][100]; // i와 j 테이블이 연결되어 있으면 cost, 아니면 0 저장
 
 void print(ofstream& outputfile) {
 	for(int i = 0; i < n; i++) {
 		for(int j = 0; j < n; j++) {
-			if (route[i][j].second != INF) {
+			if (route[i][j].first != INF) {
 				outputfile << j << ' ';
-				if (i == j)
-					outputfile << route[i][j].first.front() << ' ';
-				else
-					outputfile << route[i][j].first[1] << ' ';
-				outputfile << route[i][j].second << endl;
+				if (i == j) outputfile << i << ' ';
+				else outputfile << route[i][j].second << ' ';
+				outputfile << route[i][j].first << endl;
 			}
 		}
 		outputfile << endl;
@@ -46,46 +43,42 @@ void initialize_route_table() {
 	// 최단거리 테이블 초기화
 	for(int i = 0; i < n; i++) {
 		for(int j = 0; j < n; j++) {
-			vector<int> v;
-			if (i == j) {
-				v.push_back(i);
-				route[i][j].first = v;
-				route[i][j].second = 0;
-			}
-			else {
-				route[i][j].first = v;
-				route[i][j].second = INF;
-			}
+			if (i == j) route[i][j].first = 0; // 자기 자신으로 가는 cost는 0
+			else route[i][j].first = INF; // 경로가 없으면 INF
+			route[i][j].second = -1; // next는 -1로 초기화
 		}
 	}
 }
 
 void bellman_ford(int start) {
-	for(int k = 0; k < n - 1; k++) {
+	for(int i = 0; i < n - 1; i++) {  // n-1번 반복
 		// 매 반복마다 모든 간선 확인
-		for(int i = 0; i < n; i++){
-			for(int j = 0; j < n; j++){
-				if (link[i][j]) {
-					int curr = i, next = j, cost = link[i][j];
-					// tie-breaking rule 1
-					if ((route[start][curr].second != INF && route[start][next].second == route[start][curr].second + cost) && curr < next) {
-						// hops 업데이트
-						route[start][next].first.clear();
-						route[start][next].first.insert(route[start][next].first.begin(), route[start][curr].first.begin(), route[start][curr].first.end());
-						route[start][next].first.push_back(next);
-					}
-					else if(route[start][curr].second != INF && route[start][next].second > route[start][curr].second + cost){
-						// hops 업데이트
-						route[start][next].first.clear();
-						route[start][next].first.insert(route[start][next].first.begin(), route[start][curr].first.begin(), route[start][curr].first.end());
-						route[start][next].first.push_back(next);
-						// cost 업데이트
-						route[start][next].second = route[start][curr].second + cost;
-					}
+		for(int pass = 0; pass < n; pass++) {
+			for(int dest = 0; dest < n; dest++) {
+				if (link[pass][dest] && route[start][pass].first != INF && (route[start][dest].first >= route[start][pass].first + link[pass][dest])) {
+					route[start][dest].first = route[start][pass].first + link[pass][dest];
 				}
 			}
 		}
 	}
+}
+
+// 라우팅테이블의 next 정보를 설정해주는 함수
+void find_next() {
+	for(int src = 0; src < n; src++) {
+		for(int neighbor = n - 1; neighbor >= 0; neighbor--) { // tie-breaking rule 1: 현재 루트와 새로운 루트의 cost가 같으면 id가 더 작은 노드를 다음 노드로 삼는다.
+			for(int dst = 0; dst < n; dst++) {
+				if (link[src][neighbor] && route[src][dst].first == link[src][neighbor] + route[neighbor][dst].first)
+					route[src][dst].second = neighbor;
+			}
+		}
+	}
+}
+
+void print_hops(ofstream& outputfile, int src, int dst) {
+	outputfile << src << ' ';
+	if (route[src][dst].second != dst)
+		print_hops(outputfile, route[src][dst].second, dst);
 }
 
 void simulate(ifstream& messagesfile, ofstream& outputfile) {
@@ -101,14 +94,13 @@ void simulate(ifstream& messagesfile, ofstream& outputfile) {
 		// 출력
 		outputfile << "from " << sender << " to " << receiver << " cost ";
 		// 경로가 없는 경우
-		if (route[sender][receiver].second >= INF)
+		if (route[sender][receiver].first >= INF)
 			outputfile << "infinite hops unreachable message " << message << endl;
 
 		// 경로가 있는 경우
 		else {
-			outputfile << route[sender][receiver].second << " hops ";
-			for(int i = 0; i < (int)route[sender][receiver].first.size() - 1; i++)
-				outputfile << route[sender][receiver].first[i] << ' ';
+			outputfile << route[sender][receiver].first << " hops ";
+			print_hops(outputfile, sender, receiver);
 			outputfile << "message " << message << endl;
 		}
 	}
@@ -117,98 +109,68 @@ void simulate(ifstream& messagesfile, ofstream& outputfile) {
 	messagesfile.seekg(0, ios::beg);
 }
 
-void initialize_rtable(int node) {
-	// 변경된 간선의 이웃 노드부터 라우팅 테이블 업데이트
+// 이웃 라우터에 업데이트 사실을 알리고 최단경로를 갱신하기 위해 초기화하는 함수
+void init_changed_route(int src, int dst) {
 	for(int i = 0; i < n; i++) {
-		vector<int> v;
-		route[node][i].first.clear();
-		if (i == node) {
-			v.push_back(i);
-			route[node][i].first = v;
-			route[node][i].second = 0;
-		}
-		else {
-			route[node][i].first = v;
-			route[node][i].second = INF;
-			route[i][node].first = v;
-			route[i][node].second = INF;
-		}
-	}
-}
-
-// 라우터의 라우팅 테이블에 start -> end 경로가 있으면 해당 경로가 들어있는 루트의 cost를 무한으로 설정하고 1 반환, 없으면 0 반환
-int detect_path_and_delete(int node, int start, int end) {
-	for(int i = 0; i < n; i++) {
-		for(int j = 0; j + 1 < (int)route[node][i].first.size(); j++) {
-			if ((route[node][i].first[j] == start && route[node][i].first[j + 1] == end)
-			|| (route[node][i].first[j] == end && route[node][i].first[j + 1] == start)) {
-				vector<int> v;
-				route[node][i].first.clear();
-				route[node][i].first = v;
-				route[node][i].second = INF;
-				return (1);
-			}
-		}
-	}
-	return (0);
-}
-
-
-// 라우팅테이블 업데이트가 감지되면 이웃 라우터들에게 업데이트 소식을 알리고 필요하다면 라우팅테이블을 수정하는 함수
-void signal_change(int node, int start, int end) {
-	// 현재 노드 검사
-	if (detect_path_and_delete(node, start, end)) {
-		for(int i = 0; i < n; i++) { // 주위 노드도 검사하기 위해 재귀호출
-			if(link[node][i]) {
-				signal_change(i, start, end);
+		if (link[src][i]) {
+			for(int j = 0; j < n; j++) {
+				if (route[i][j].second == src && j == dst) { // src를 통해 dst로 가는 경로일 경우 INF로 초기화
+					route[i][j].first = INF;
+					route[i][j].second = -1;
+					init_changed_route(i, dst);
+				}
 			}
 		}
 	}
 }
 
 void change_route(ifstream& topologyfile, ifstream& changesfile, ifstream& messagesfile, ofstream& outputfile) {
-	string change; int start, end, cost;
+	string change; int src, dst, cost;
 	while (getline(changesfile, change)) {
 		istringstream iss(change);
-		iss >> start >> end >> cost;
-
-		/* cost가 기존보다 커지거나 링크가 끊어지는 경우(cost가 무한대가 되는 경우)
-		최단경로 알고리즘을 적용해도 업데이트되지 않으므로
-		기존 경로를 거치는 루트의 cost를 무한대로 만들어줘야 함
-		*/
-
-		// cost가 기존보다 작아지는 경우
-		if (cost != -999 && cost <= link[start][end]) {
-			link[start][end] = cost;
-			link[end][start] = cost;
-			// 별도 라우팅테이블 업데이트 불필요
+		iss >> src >> dst >> cost;
+	
+		// cost가 작아지는 경우 (새로운 link가 추가되는 경우 + 기존 link의 cost가 작아지는 경우)
+		if ((!link[src][dst]) || (cost != -999 && cost < link[src][dst])) {
+			link[src][dst] = cost;
+			link[dst][src] = cost;
 		}
-		// cost가 기존보다 커지는 경우
-		else if (cost != - 999 && cost > link[start][end]) {
-			link[start][end] = cost;
-			link[end][start] = cost;
-			signal_change(start, start, end);
-			signal_change(end, start, end);
-		}
-		// 링크가 끊어지는 경우
+		// cost가 커지는 경우 (기존 link가 끊어지는 경우 + 기존 link의 cost가 커지는 경우
 		else {
-			signal_change(start, start, end);
-			// 링크가 끊어지는 경우 해당 경로를 거치는 라우터의 루트를 전부 업데이트해준 뒤 링크를 끊어야 함
-			link[start][end] = 0;
-			link[end][start] = 0;
+			init_changed_route(src, dst);
+			init_changed_route(dst,src);
+			if (cost == -999) { //기존 link가 끊어지는 경우
+				link[src][dst] = 0;
+				link[dst][src] = 0;
+			}
+			else { // 기존 link의 cost가 커지는 경우
+				link[src][dst] = cost;
+				link[dst][src] = cost;
+			}
+			for(int i = 0; i < n; i++) {
+				if (route[src][i].second == dst) { // src가 시작지, i가 목적지, second가 다음. 다음이 dst인 경우를 INF로 초기화해주고 DFS
+					route[src][i].first = INF;
+					route[src][i].second = -1;
+					init_changed_route(src, i);
+				}
+			}
+			for(int i = 0; i < n; i++) {
+				if (route[dst][i].second == src) {
+					route[dst][i].first = INF;
+					route[dst][i].second = -1;
+					init_changed_route(dst, i);
+				}
+			}
 		}
-
-		/* 기존 경로를 거치는 루트의 cost를 무한대로 만들어준 후
-		본격적으로 최단경로 알고리즘을 적용해서 라우팅 테이블 수정 */
 		for(int i = 0; i < n; i++)
 			bellman_ford(i);
-
+		find_next();
 		print(outputfile);
 		simulate(messagesfile, outputfile);
 	}
 }
 
-
+ 
 int main(int ac, char* av[]) {
 	// 입력 및 예외처리
 	if (ac != 4) {
@@ -228,11 +190,13 @@ int main(int ac, char* av[]) {
 	// 이웃과 라우팅 테이블 교환
 	for(int i = 0; i < n; i++)
 		bellman_ford(i);
+	find_next();
 
-	ofstream outputfile("output_dv.txt");
 	// 초기 라우팅테이블 출력 및 simulate
+	ofstream outputfile("output_dv.txt");
 	print(outputfile);
 	simulate(messagesfile, outputfile);
+
 	// change 이후 라우팅테이블 출력 및 simulate
 	change_route(topologyfile, changesfile, messagesfile, outputfile);
 

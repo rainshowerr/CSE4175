@@ -77,16 +77,14 @@ void dijkstra(int start) {
 	while(!pq[start].empty()) {
 		int curr = pq[start].top().second; // 거쳐가는 노드
 		int cost = pq[start].top().first;
-		cout << "방문노드:" << curr << ' ' << cost << endl;
 		pq[start].pop();
 		// if(route[start][curr] < cost) continue;
 		for (int i = 0; i < n; i++) {
 			if (link[curr][i]) {
 				int n_curr = i; // 도착 노드
 				int n_cost = link[curr][i];
-				// cout << start << ' ' << curr << ' ' << n_curr << endl;
 				// tie-breaking rule 3 : cost가 같은 경우 parent 번호가 더 작은 경로를 선택
-				if ((route[start][n_curr].second == cost + n_cost) && (start <= curr))
+				if ((route[start][n_curr].second == cost + n_cost) && (route[start][n_curr].first[route[start][n_curr].first.size() - 2] <= curr))
 					continue;
 				if (route[start][n_curr].second >= cost + n_cost) {
 					// hops 업데이트
